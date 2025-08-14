@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.python-version
+# Environments
+.venv/
+venv/
+env/
+backend/.venv/
+# Databases
+backend/dev.db
+backend/*.sqlite
+backend/*.sqlite3
+# Env files
+.env
+.env.*
+backend/.env
+backend/.env.local
+frontend/.env
+frontend/.env.local
+# Node/Vite
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+.vite/
+frontend/.vite/
+# Logs
+*.log
+# OS
+.DS_Store
+Thumbs.db
+# IDE
+.idea/
+.vscode/
+# Coverage
+.coverage
+htmlcov/
+coverage.xml

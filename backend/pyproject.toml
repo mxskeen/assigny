@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "assigny-backend"
+version = "0.1.0"
+description = "Doctor appointment assistant with MCP"
+authors = [{name = "Assigny"}]
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.uv]
+python-preference = "only-system"
+
+[tool.black]
+line-length = 100
+
+[tool.isort]
+profile = "black" 

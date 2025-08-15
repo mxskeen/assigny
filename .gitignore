@@ -13,6 +13,7 @@ env/
 backend/.venv/
 # Databases
 backend/dev.db
+backend/*.db
 backend/*.sqlite
 backend/*.sqlite3
 # Env files

@@ -144,6 +144,8 @@ def format_tool_response(tool_name: str, content: str) -> str:
             return format_patients_by_reason(content)
         elif tool_name in ("register_patient_tool", "book_appointment_tool"):
             return format_success_response(content)
+        elif tool_name == "cancel_all_doctor_appointments_tool":
+            return format_cancellation_response(content)
         else:
             return content
     except Exception:
@@ -304,6 +306,28 @@ def format_success_response(content: str) -> str:
         if data.get("error"):
             return data["error"]
         return data.get("message", "Operation completed successfully.")
+    except Exception:
+        return content
+
+
+def format_cancellation_response(content: str) -> str:
+    """Format cancellation responses for doctor appointment cancellations."""
+    import json
+    
+    try:
+        data = json.loads(content)
+        if data.get("error"):
+            return f"❌ {data['error']}"
+        
+        canceled_count = data.get("canceled", 0)
+        doctor_name = data.get("doctor", "")
+        date_str = data.get("for_date", "")
+        message = data.get("message", "")
+        
+        if canceled_count == 0:
+            return f"ℹ️ {message}"
+        else:
+            return f"✅ {message}"
     except Exception:
         return content
 
@@ -496,6 +520,9 @@ MANDATORY TOOL USAGE:
 - For ANY availability query → MUST use check_doctor_availability
 - For ANY booking request → MUST use book_appointment_tool
 - For ANY patient registration → MUST use register_patient_tool
+- For doctor cancelling ALL appointments on a date → MUST use cancel_all_doctor_appointments_tool
+- For Slack summary requests → MUST use appointment_stats_tool with notify=true
+- For ANY patient registration → MUST use register_patient_tool
 - For Slack summary requests → MUST use appointment_stats_tool with notify=true
 
 FORBIDDEN BEHAVIORS:
@@ -516,6 +543,7 @@ TOOL PARAMETERS:
 - patients_by_reason_tool: {{"query": {{"reason_like": "condition", "for_date": "YYYY-MM-DD"}}}}
 - check_doctor_availability: {{"query": {{"doctor_name": "Dr. Name", "date": "YYYY-MM-DD"}}}}
 - book_appointment_tool: {{"data": {{"doctor_name": "Dr. Name", "patient_email": "email", "start_at": "ISO-datetime", "end_at": "ISO-datetime"}}}}
+- cancel_all_doctor_appointments_tool: {{"data": {{"doctor_name": "Dr. Name", "for_date": "YYYY-MM-DD", "reason": "optional reason"}}}}
 
 VALIDATION RULES:
 - If you cannot determine which tool to use, ask for clarification
@@ -797,4 +825,4 @@ async def chat(msg: AgentMessage) -> AgentResponse:
         session_id=msg.session_id, 
         user_type=msg.user_type
     )
-    return AgentResponse(text=response_text, session_id=msg.session_id) 
+    return AgentResponse(text=response_text, session_id=msg.session_id)

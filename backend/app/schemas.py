@@ -100,6 +100,12 @@ class CancelByDateInput(BaseModel):
 	reason: Optional[str] = None
 
 
+class CancelAllDoctorAppointmentsInput(BaseModel):
+	doctor_name: str
+	for_date: date
+	reason: Optional[str] = None
+
+
 class ListAppointmentsQuery(BaseModel):
 	for_date: date
 	doctor_name: Optional[str] = None
@@ -134,4 +140,4 @@ class StatsResult(BaseModel):
 	total_appointments: int
 	completed: int
 	canceled: int
-	by_condition: dict[str, int] | None = None 
+	by_condition: dict[str, int] | None = None

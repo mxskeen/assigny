@@ -80,6 +80,7 @@ GET /health
 - check_doctor_availability
 - book_appointment_tool
 - register_patient_tool
+- cancel_all_doctor_appointments_tool
 
 ## Example
 ```bash

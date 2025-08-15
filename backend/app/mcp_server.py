@@ -12,7 +12,7 @@ from sqlalchemy import text as sql_text
 from .config import get_settings
 from .db import SessionLocal
 from .repositories import book_appointment, daily_stats, find_availability_slots, get_doctor_by_name, get_patient_by_email, cancel_appointment, list_appointments, cancel_appointments_by_date, patients_by_reason, list_doctors
-from .schemas import BookAppointmentInput, DoctorAvailabilityQuery, DoctorAvailabilityResult, StatsQuery, PatientCreate, CancelAppointmentInput, ListAppointmentsQuery, CancelByDateInput, PatientsByReasonQuery
+from .schemas import BookAppointmentInput, DoctorAvailabilityQuery, DoctorAvailabilityResult, StatsQuery, PatientCreate, CancelAppointmentInput, ListAppointmentsQuery, CancelByDateInput, PatientsByReasonQuery, CancelAllDoctorAppointmentsInput
 from .models import Patient, Appointment, Doctor, DoctorAvailability
 
 mcp = FastMCP("assigny")
@@ -513,6 +513,79 @@ async def cancel_appointments_by_date_tool(data: dict[str, Any]) -> dict[str, An
 
 
 @mcp.tool()
+async def cancel_all_doctor_appointments_tool(data: dict[str, Any]) -> dict[str, Any]:
+	"""Cancel all appointments for a specific doctor on a specific date and notify all patients.
+	Args: {"doctor_name": str, "for_date": "YYYY-MM-DD", "reason": str | None}
+	Returns: {"canceled": int, "doctor": str, "for_date": str, "message": str}
+	"""
+	try:
+		payload = CancelAllDoctorAppointmentsInput(**data)
+	except ValidationError as e:
+		return {"error": str(e)}
+
+	session = await _get_session()
+	async with session as db:
+		doctor = await get_doctor_by_name(db, payload.doctor_name)
+		if not doctor:
+			return {"error": f"Doctor '{payload.doctor_name}' not found"}
+		
+		apps = await cancel_appointments_by_date(db, payload.for_date, doctor.id)
+		
+		if not apps:
+			return {
+				"canceled": 0, 
+				"doctor": doctor.name, 
+				"for_date": str(payload.for_date),
+				"message": f"No scheduled appointments found for Dr. {doctor.name} on {payload.for_date.strftime('%B %d, %Y')}"
+			}
+		
+		# Send detailed cancellation emails to each patient
+		for appt in apps:
+			patient = appt.patient
+			cancel_subject = f"Appointment Cancelled - Dr. {doctor.name}"
+			cancel_body = f"""
+Dear {patient.name},
+
+We regret to inform you that your appointment with Dr. {doctor.name} has been cancelled.
+
+Cancelled Appointment Details:
+• Doctor: Dr. {doctor.name}
+• Date: {payload.for_date.strftime('%A, %B %d, %Y')}
+• Time: {appt.start_at.strftime('%I:%M %p')} - {appt.end_at.strftime('%I:%M %p')}
+• Reason for visit: {appt.description or 'General consultation'}
+• Appointment ID: #{appt.id}
+• Reason for cancellation: {payload.reason or 'Doctor unavailable'}
+
+We sincerely apologize for any inconvenience this may cause. To reschedule your appointment, please:
+• Use our online booking system
+• Call our office during business hours
+• Reply to this email with your preferred times
+
+We appreciate your understanding and look forward to serving you soon.
+
+Best regards,
+Dr. {doctor.name}'s Office
+The Assigny Team
+
+---
+This is an automated notification. Please save this email for your records.
+			""".strip()
+			
+			await _send_email(
+				to_email=patient.email,
+				subject=cancel_subject,
+				body=cancel_body,
+			)
+		
+		return {
+			"canceled": len(apps), 
+			"doctor": doctor.name, 
+			"for_date": str(payload.for_date),
+			"message": f"Successfully cancelled {len(apps)} appointment{'s' if len(apps) != 1 else ''} for Dr. {doctor.name} on {payload.for_date.strftime('%B %d, %Y')}. All patients have been notified via email."
+		}
+
+
+@mcp.tool()
 async def list_appointments_tool(query: dict[str, Any]) -> dict[str, Any]:
 	"""List appointments for a date, optionally filter by doctor, patient, and time.
 	Args: {"for_date": "YYYY-MM-DD", "doctor_name": str | None, "patient_email": str | None, "at_time": "HH:MM" | None}
@@ -624,4 +697,4 @@ async def appointment_stats_tool(query: dict[str, Any]) -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-	mcp.run(transport="stdio") 
+	mcp.run(transport="stdio")

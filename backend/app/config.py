@@ -1,43 +1,36 @@
-from __future__ import annotations
-
-from functools import lru_cache
-from typing import Optional
-
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-	APP_ENV: str = "development"
-	APP_SECRET: str = "change_me"
+    # Database configuration
+    DATABASE_URL: str = "sqlite:///./app.db"
+    
+    # OpenAI configuration
+    OPENAI_API_KEY: str = ""
+    OPENAI_BASE_URL: str = "https://api.openai.com/v1"
+    OPENAI_MODEL: str = "gpt-4o-mini"
+    
+    # Google Calendar configuration
+    GOOGLE_CALENDAR_ID: str = ""
+    GOOGLE_CREDENTIALS_PATH: str = ""
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REFRESH_TOKEN: str = ""
+    
+    # Email configuration
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    FROM_EMAIL: str = ""
+    
+    # Slack configuration
+    SLACK_BOT_TOKEN: str = ""
+    SLACK_CHANNEL_ID: str = ""
+    
+    class Config:
+        env_file = ".env"
 
-	# Database
-	DATABASE_URL: Optional[str] = None
-	SQLITE_URL: str = "sqlite+aiosqlite:///./dev.db"
 
-	# LLM (Gemini only)
-	GEMINI_API_KEY: Optional[str] = None
-	GEMINI_MODEL: str = "gemini-2.5-flash"
-
-	# Google
-	GOOGLE_CLIENT_ID: Optional[str] = None
-	GOOGLE_CLIENT_SECRET: Optional[str] = None
-	GOOGLE_REFRESH_TOKEN: Optional[str] = None
-	GOOGLE_CALENDAR_ID: Optional[str] = None
-
-	# Email (SMTP)
-	SMTP_HOST: Optional[str] = None
-	SMTP_PORT: int = 587
-	SMTP_USER: Optional[str] = None
-	SMTP_PASSWORD: Optional[str] = None
-	FROM_EMAIL: Optional[str] = None
-
-	# Slack
-	SLACK_BOT_TOKEN: Optional[str] = None
-	SLACK_CHANNEL_ID: Optional[str] = None
-
-	model_config = SettingsConfigDict(env_file="backend/.env", extra="ignore")
-
-
-@lru_cache
 def get_settings() -> Settings:
-	return Settings() 
+    return Settings() 

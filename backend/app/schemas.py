@@ -23,7 +23,10 @@ class DoctorOut(BaseModel):
 
 
 class PatientCreate(BaseModel):
-	name: str
+	# Either provide full name in 'name' or use first_name and optional last_name
+	name: Optional[str] = None
+	first_name: Optional[str] = None
+	last_name: Optional[str] = None
 	email: EmailStr
 	primary_condition: Optional[str] = None
 
@@ -83,7 +86,40 @@ class BookAppointmentInput(BaseModel):
 	patient_email: EmailStr
 	start_at: datetime
 	end_at: datetime
-	description: Optional[str] = None
+	description: Optional[str] = None  # reason for visit
+
+
+class CancelAppointmentInput(BaseModel):
+	appointment_id: int
+	reason: Optional[str] = None
+
+
+class CancelByDateInput(BaseModel):
+	for_date: date
+	doctor_name: Optional[str] = None
+	reason: Optional[str] = None
+
+
+class ListAppointmentsQuery(BaseModel):
+	for_date: date
+	doctor_name: Optional[str] = None
+	patient_email: Optional[EmailStr] = None
+	at_time: Optional[time] = None
+
+
+class PatientsByReasonQuery(BaseModel):
+	for_date: date
+	reason_like: str
+	doctor_name: Optional[str] = None
+
+
+class NextAvailabilityQuery(BaseModel):
+	doctor_name: str
+	start_date: date
+	days_ahead: int = 21
+	part_of_day: Optional[str] = None
+	slots_per_day: int = 3
+	slot_minutes: int = 30
 
 
 class StatsQuery(BaseModel):

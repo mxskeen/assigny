@@ -263,6 +263,39 @@ async def register_patient_tool(data: dict[str, Any]) -> dict[str, Any]:
 			await db.commit()
 			await db.refresh(patient)
 			
+			# Send welcome email to the patient
+			welcome_subject = "Welcome to Assigny - Your Account is Ready!"
+			welcome_body = f"""
+Dear {full_name},
+
+Welcome to Assigny! Your patient account has been successfully created.
+
+Account Details:
+• Name: {full_name}
+• Email: {email}
+• Primary Condition: {payload.primary_condition or 'Not specified'}
+• Registration Date: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}
+
+You can now:
+✓ Book appointments with our doctors
+✓ View your appointment history
+✓ Receive automated confirmations and reminders
+
+If you have any questions, please don't hesitate to contact us.
+
+Best regards,
+The Assigny Team
+
+---
+This is an automated message. Please do not reply to this email.
+			""".strip()
+			
+			await _send_email(
+				to_email=email,
+				subject=welcome_subject,
+				body=welcome_body
+			)
+			
 			# Send Slack notification for new patient registration
 			settings = get_settings()
 			if settings.SLACK_BOT_TOKEN and settings.SLACK_CHANNEL_ID:
@@ -310,16 +343,69 @@ async def book_appointment_tool(data: dict[str, Any]) -> dict[str, Any]:
 			return {"error": str(e)}
 
 		event_id = await _create_calendar_event(payload.start_at, payload.end_at, f"Appointment: {doctor.name}", payload.description)
+		
+		# Send confirmation email to patient
+		patient_subject = f"Appointment Confirmed with {doctor.name}"
+		patient_body = f"""
+Dear {patient.name},
+
+Your appointment has been successfully booked! Here are the details:
+
+Appointment Details:
+• Doctor: {doctor.name}
+• Date & Time: {payload.start_at.strftime('%A, %B %d, %Y at %I:%M %p')} - {payload.end_at.strftime('%I:%M %p')}
+• Reason: {payload.description or 'General consultation'}
+• Appointment ID: #{appt.id}
+
+Important Notes:
+• Please arrive 15 minutes early for check-in
+• Bring a valid ID and insurance card if applicable
+• If you need to cancel or reschedule, please contact us at least 24 hours in advance
+
+If you have any questions, please don't hesitate to contact us.
+
+Best regards,
+The Assigny Team
+
+---
+This is an automated confirmation. Please save this email for your records.
+		""".strip()
+		
 		await _send_email(
 			to_email=patient.email,
-			subject=f"Appointment confirmed with {doctor.name}",
-			body=f"Your appointment is scheduled from {payload.start_at} to {payload.end_at}. Reason: {payload.description or 'N/A'}.",
+			subject=patient_subject,
+			body=patient_body,
 		)
-		# Notify doctor as well
+		
+		# Send notification email to doctor
+		doctor_subject = f"New Appointment Booked - #{appt.id}"
+		doctor_body = f"""
+Dear {doctor.name},
+
+A new appointment has been booked with you.
+
+Appointment Details:
+• Patient: {patient.name} ({patient.email})
+• Date & Time: {payload.start_at.strftime('%A, %B %d, %Y at %I:%M %p')} - {payload.end_at.strftime('%I:%M %p')}
+• Reason: {payload.description or 'General consultation'}
+• Appointment ID: #{appt.id}
+
+Patient Information:
+• Primary Condition: {patient.primary_condition or 'Not specified'}
+
+Please review the appointment details and prepare accordingly.
+
+Best regards,
+The Assigny Team
+
+---
+This is an automated notification from the Assigny appointment system.
+		""".strip()
+		
 		await _send_email(
 			to_email=doctor.email,
-			subject=f"New appointment booked (#{appt.id})",
-			body=f"Patient: {patient.name} ({patient.email})\nWhen: {payload.start_at} to {payload.end_at}\nReason: {payload.description or 'N/A'}",
+			subject=doctor_subject,
+			body=doctor_body,
 		)
 		
 		# Send Slack notification for new appointment booking

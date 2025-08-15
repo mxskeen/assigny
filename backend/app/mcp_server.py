@@ -442,11 +442,40 @@ async def cancel_appointment_tool(data: dict[str, Any]) -> dict[str, Any]:
 		appt = await cancel_appointment(db, payload.appointment_id)
 		patient = appt.patient
 		doctor = appt.doctor
+		
+		# Send cancellation email to patient
+		cancel_subject = f"Appointment Canceled - {doctor.name}"
+		cancel_body = f"""
+Dear {patient.name},
+
+We're writing to inform you that your appointment has been canceled.
+
+Canceled Appointment Details:
+• Doctor: {doctor.name}
+• Original Date & Time: {appt.start_at.strftime('%A, %B %d, %Y at %I:%M %p')}
+• Appointment ID: #{appt.id}
+• Reason for Cancellation: {payload.reason or 'Not specified'}
+
+Next Steps:
+• If you'd like to reschedule, please contact us or use our booking system
+• We apologize for any inconvenience this may cause
+• No charges will be applied for this cancellation
+
+If you have any questions or concerns, please don't hesitate to contact us.
+
+Best regards,
+The Assigny Team
+
+---
+This is an automated notification. Please save this email for your records.
+		""".strip()
+		
 		await _send_email(
 			to_email=patient.email,
-			subject=f"Appointment canceled with {doctor.name}",
-			body=f"Your appointment on {appt.start_at} has been canceled. Reason: {payload.reason or 'not specified'}.",
+			subject=cancel_subject,
+			body=cancel_body,
 		)
+		
 		return {"appointment_id": appt.id, "status": appt.status, "message": f"Appointment #{appt.id} canceled."}
 
 

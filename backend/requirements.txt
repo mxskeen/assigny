@@ -11,7 +11,7 @@ aiosqlite==0.20.0
 alembic==1.13.2
 
 mcp[cli]==1.2.0
-google-generativeai==0.8.3
+openai==1.40.6
 
 # Optional integrations
 slack_sdk==3.27.1
